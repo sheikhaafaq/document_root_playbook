@@ -1,0 +1,64 @@
+- hosts: all
+  vars_prompt: 
+     - name: "dvd"
+       prompt: "Enter the location where you want to create directory,eg. /dvd"
+       private: no
+     - name: "document_root"
+       prompt: "Enter the location where you want to create directory,eg. /var/www/lw"
+       private: no
+     - name: "port_no"
+       prompt: "Enter port no"
+       private: no
+     - name: "ip_address"
+       prompt: "Enter IP address of target node"
+       private: no
+  tasks:
+     
+     - file:
+          state: directory
+          path: "/dvd1"
+       
+     - mount: 
+          src: /dev/cdrom
+          path: "/dvd1"
+          state: mounted
+          fstype: "iso9660"
+     - yum_repository:
+          baseurl: "{{ dvd }}/AppStream"
+          name: "Mydvd1"
+          description: "My yum dvd for package"
+          gpgcheck: no
+     - yum_repository:
+          baseurl: "{{ dvd }}/BaseOS"
+          name: "Mydvd2"
+          description: "My yum dvd for package"
+          gpgcheck: no
+     
+     - package: 
+          name: "httpd"
+          state: "present"
+
+     - file: 
+          path: "{{ document_root}}"
+          state: directory
+
+     - copy: 
+          dest: "/etc/httpd/conf.d/lw.conf"
+          content: "Listen  {{ port_no }} \n <VirtualHost {{ ip_address }}:{{ port_no }}> \n DocumentRoot  /var/www/lw \n </VirtualHost>"
+
+     - service: 
+          name: "httpd"
+          state: "restarted"
+          enabled: yes
+
+     - copy:
+          dest: "{{ document_root}}/lw.html"
+          content: "New Web server configure by ansible "
+   
+     - firewalld: 
+          port: "{{ port_no }}/tcp" 
+          state: enabled
+          permanent: yes
+          immediate: yes
+
+
